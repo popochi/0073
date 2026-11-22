@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome (アイコン用) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Inter & Noto Sans JP) -->
+    <!-- Google Fonts (Noto Sans JP) -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
@@ -60,11 +60,11 @@
             <!-- プログレスバー -->
             <div id="progress-container" class="mt-2">
                 <div class="flex justify-between text-xs font-semibold mb-1 text-blue-100">
-                    <span id="progress-text">質問 1 / 5</span>
-                    <span id="progress-percent">20%</span>
+                    <span id="progress-text">質問 1 / 10</span>
+                    <span id="progress-percent">10%</span>
                 </div>
                 <div class="w-full bg-black/20 h-2.5 rounded-full overflow-hidden p-0.5 backdrop-blur-sm">
-                    <div id="progress-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 20%;"></div>
+                    <div id="progress-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500 ease-out" style="width: 10%;"></div>
                 </div>
             </div>
         </header>
@@ -131,7 +131,7 @@
         <footer class="py-3 px-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400">
             <span>タブレット端末専用モード</span>
             <!-- 管理者モーダル起動ボタン -->
-            <button id="btn-admin-open" class="text-slate-300 hover:text-slate-600 p-2 transition-colors">
+            <button id="btn-admin-open" class="text-slate-300 hover:text-slate-600 p-2 transition-colors" aria-label="管理者メニュー">
                 <i class="fa-solid fa-lock"></i>
             </button>
         </footer>
@@ -205,6 +205,15 @@
                         <i class="fa-solid fa-trash"></i>
                         <span>端末内回答データを全削除</span>
                     </button>
+
+                    <!-- カスタム確認ダイアログ（window.confirmの代替） -->
+                    <div id="confirm-clear-box" class="hidden p-4 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-3">
+                        <p class="text-xs font-bold text-rose-800">端末に保存されたすべての回答データを削除しますか？<br>（この操作は取り消せません）</p>
+                        <div class="flex justify-center space-x-3">
+                            <button id="btn-confirm-clear-yes" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm">削除する</button>
+                            <button id="btn-confirm-clear-no" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-xl">キャンセル</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -218,27 +227,57 @@
 
     <!-- JavaScriptロジック -->
     <script>
-        // --- 既定の初期設問データ構成 ---
+        // --- 大阪イベント・福島特産品広報用の既定10問構成 ---
         const defaultQuestions = [
             {
                 id: 1,
-                title: "本日のイベント全体の満足度はいかがでしたか？",
-                options: ["大変満足", "普通", "不満"]
+                title: "本日はどちらからお越しですか？（お住まいの地域）",
+                options: ["大阪市内", "大阪府内（市外）", "近畿圏（大阪以外）", "その他（遠方・旅行者など）"]
             },
             {
                 id: 2,
-                title: "知りたい情報や求めるコンテンツは得られましたか？",
-                options: ["とても得られた", "ある程度得られた", "あまり得られなかった", "全く得られなかった"]
+                title: "お客様の年代を教えてください",
+                options: ["10〜20代", "30〜40代", "50〜60代", "70代以上"]
             },
             {
                 id: 3,
-                title: "会場の混雑状況や案内表記はいかがでしたか？",
-                options: ["快適だった", "やや不便だった", "不便だった"]
+                title: "お客様の性別を教えてください",
+                options: ["男性", "女性", "その他・回答しない"]
             },
             {
                 id: 4,
-                title: "今後同様のイベントが開催された場合、また参加したいですか？",
-                options: ["ぜひ参加したい", "検討したい", "参加しない"]
+                title: "本イベントに来場されたきっかけは何ですか？",
+                options: ["ポスター・チラシ・SNSを見た", "会場を通りかかった", "福島の特産品・食べ物が好きだから", "その他"]
+            },
+            {
+                id: 5,
+                title: "福島県の農産品・特産品に対して、普段どのようなイメージをお持ちですか？",
+                options: ["品質が良く、おいしい", "安全性が気になる", "特に意識したことはない"]
+            },
+            {
+                id: 6,
+                title: "東日本大震災および原発事故後の福島県の農産物検査（全量全袋検査など）についてご存知でしたか？",
+                options: ["よく知っていた", "聞いたことはあるが、知らなかった", "今回初めて知った"]
+            },
+            {
+                id: 7,
+                title: "福島県産品の安全性に関する科学的データや放射性物質の検査結果について、どう思われますか？",
+                options: ["十分に信頼できる", "やや信頼できる", "あまり信頼していない・不安がある"]
+            },
+            {
+                id: 8,
+                title: "本日、福島の特産品（お米・果物・加工品など）を実際に購入・試食してみていかがでしたか？",
+                options: ["非常に満足した・美味しかった", "まあまあ良かった", "購入していない・食べていない"]
+            },
+            {
+                id: 9,
+                title: "今後、スーパーやお店で福島県産の食材を見かけた場合、積極的に購入したいと思いますか？",
+                options: ["積極的に購入したい", "特に気にせず購入する", "あまり購入したいとは思わない"]
+            },
+            {
+                id: 10,
+                title: "本日のイベントや福島の広報活動について、ご感想や応援メッセージがあればお聞かせください。",
+                options: ["大変有意義なイベントだった", "もっと福島を知りたいと思った", "特に感想はない"]
             }
         ];
 
@@ -252,10 +291,24 @@
             { icon: "fa-comment", color: "text-purple-500", bg: "hover:border-purple-500 hover:bg-purple-50" }
         ];
 
+        // HTMLエスケープ用ヘルパー（入力値にダブルクォート等が含まれても壊れないように）
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         // 端末に保存された設問データを取得
         function getActiveQuestions() {
-            const stored = localStorage.getItem('event_survey_custom_questions');
-            return stored ? JSON.parse(stored) : defaultQuestions;
+            try {
+                const stored = localStorage.getItem('event_survey_custom_questions');
+                return stored ? JSON.parse(stored) : defaultQuestions;
+            } catch (e) {
+                return defaultQuestions;
+            }
         }
 
         let questions = getActiveQuestions();
@@ -270,7 +323,6 @@
         const screenStart = document.getElementById('screen-start');
         const screenQuestion = document.getElementById('screen-question');
         const screenComplete = document.getElementById('screen-complete');
-        const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
         const progressPercent = document.getElementById('progress-percent');
@@ -280,7 +332,14 @@
             updateSavedCountBadge();
             questions = getActiveQuestions();
             updateStartDescription();
+            resetProgressHeader();
         };
+
+        function resetProgressHeader() {
+            progressBar.style.width = '0%';
+            progressText.textContent = `準備完了（全${questions.length}問）`;
+            progressPercent.textContent = `0%`;
+        }
 
         function updateStartDescription() {
             document.getElementById('start-description').innerHTML = 
@@ -330,7 +389,7 @@
                         <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white shadow-sm flex items-center justify-center ${style.color} group-hover:scale-110 transition-transform">
                             <i class="fa-solid ${style.icon} text-xl"></i>
                         </div>
-                        <span class="text-base sm:text-lg font-bold text-slate-700">${optLabel}</span>
+                        <span class="text-base sm:text-lg font-bold text-slate-700">${escapeHtml(optLabel)}</span>
                     </div>
                     <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-slate-600 transition-colors"></i>
                 `;
@@ -392,14 +451,12 @@
             screenQuestion.classList.add('hidden');
             screenStart.classList.remove('hidden');
 
-            progressBar.style.width = '0%';
-            progressText.textContent = `準備完了`;
-            progressPercent.textContent = `0%`;
+            resetProgressHeader();
         }
 
         // --- ローカルストレージ（回答保存） ---
         function saveResponseToLocalStorage(answerObj) {
-            const existingData = JSON.parse(localStorage.getItem('event_survey_responses') || '[]');
+            const existingData = getStoredData();
             const record = {
                 id: crypto.randomUUID ? crypto.randomUUID() : Date.now(),
                 timestamp: new Date().toLocaleString('ja-JP'),
@@ -410,7 +467,11 @@
         }
 
         function getStoredData() {
-            return JSON.parse(localStorage.getItem('event_survey_responses') || '[]');
+            try {
+                return JSON.parse(localStorage.getItem('event_survey_responses') || '[]');
+            } catch (e) {
+                return [];
+            }
         }
 
         function updateSavedCountBadge() {
@@ -427,7 +488,7 @@
             }
 
             const activeQs = getActiveQuestions();
-            const headers = ["ID", "日時", ...activeQs.map((q, idx) => `Q${idx + 1}(${q.title.replace(/,/g, ' ')})`)];
+            const headers = ["ID", "日時", ...activeQs.map((q, idx) => `Q${idx + 1}(${q.title.replace(/,/g, ' ').replace(/"/g, '""')})`)];
             
             let csvContent = "\uFEFF"; // UTF-8 BOM
             csvContent += headers.map(h => `"${h}"`).join(",") + "\n";
@@ -436,7 +497,7 @@
                 const line = [
                     `"${row.id}"`,
                     `"${row.timestamp}"`,
-                    ...activeQs.map((_, idx) => `"${row[`Q${idx + 1}`] || ''}"`)
+                    ...activeQs.map((_, idx) => `"${String(row[`Q${idx + 1}`] || '').replace(/"/g, '""')}"`)
                 ];
                 csvContent += line.join(",") + "\n";
             });
@@ -462,6 +523,7 @@
         const adminAuthError = document.getElementById('admin-auth-error');
         const adminQuestionsEditor = document.getElementById('admin-questions-editor');
         const adminDefaultButtons = document.getElementById('admin-default-buttons');
+        const confirmClearBox = document.getElementById('confirm-clear-box');
 
         document.getElementById('btn-admin-open').onclick = () => {
             adminModal.classList.remove('hidden');
@@ -471,13 +533,15 @@
             adminActionsSection.classList.add('hidden');
             adminQuestionsEditor.classList.add('hidden');
             adminDefaultButtons.classList.remove('hidden');
+            confirmClearBox.classList.add('hidden');
+            setTimeout(() => adminPinInput.focus(), 100);
         };
 
         document.getElementById('btn-admin-close').onclick = () => {
             adminModal.classList.add('hidden');
         };
 
-        document.getElementById('btn-admin-auth').onclick = () => {
+        function verifyAdminPin() {
             if (adminPinInput.value === '1234') {
                 adminAuthSection.classList.add('hidden');
                 adminActionsSection.classList.remove('hidden');
@@ -485,13 +549,17 @@
             } else {
                 adminAuthError.classList.remove('hidden');
             }
-        };
+        }
+
+        document.getElementById('btn-admin-auth').onclick = verifyAdminPin;
+        adminPinInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') verifyAdminPin();
+        });
 
         // トグル編集画面
         document.getElementById('btn-edit-questions-toggle').onclick = () => {
             const isHidden = adminQuestionsEditor.classList.contains('hidden');
             if (isHidden) {
-                // 深いコピーを作成して作業
                 editingQuestionsCopy = JSON.parse(JSON.stringify(getActiveQuestions()));
                 renderDynamicQuestionsEditor();
                 adminQuestionsEditor.classList.remove('hidden');
@@ -526,7 +594,6 @@
                 const card = document.createElement('div');
                 card.className = "bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3";
 
-                // 質問タイトル部
                 let html = `
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Q${qIndex + 1}</span>
@@ -536,7 +603,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">質問文</label>
-                        <input type="text" value="${q.title}" onchange="updateQuestionTitle(${qIndex}, this.value)" class="w-full p-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500">
+                        <input type="text" value="${escapeHtml(q.title)}" onchange="updateQuestionTitle(${qIndex}, this.value)" class="w-full p-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1.5">
@@ -549,12 +616,11 @@
                         <div class="space-y-2">
                 `;
 
-                // 選択肢一覧
                 q.options.forEach((opt, oIndex) => {
                     html += `
                         <div class="flex items-center space-x-2">
                             <span class="text-xs text-slate-400 font-bold w-4 text-right">${oIndex + 1}.</span>
-                            <input type="text" value="${opt}" onchange="updateOptionValue(${qIndex}, ${oIndex}, this.value)" class="flex-1 p-1.5 border border-slate-200 rounded-md text-xs">
+                            <input type="text" value="${escapeHtml(opt)}" onchange="updateOptionValue(${qIndex}, ${oIndex}, this.value)" class="flex-1 p-1.5 border border-slate-200 rounded-md text-xs">
                             ${q.options.length > 1 ? `
                                 <button type="button" onclick="removeOption(${qIndex}, ${oIndex})" class="text-slate-300 hover:text-rose-500 p-1">
                                     <i class="fa-solid fa-xmark text-sm"></i>
@@ -620,17 +686,25 @@
 
         document.getElementById('btn-export-csv').onclick = downloadCSV;
 
+        // 全削除確認フロー
         document.getElementById('btn-clear-data').onclick = () => {
             if (getStoredData().length === 0) {
-                showToast("削除するデータがありません");
+                showToast("削除するデータがありません", "warning");
                 return;
             }
-            if (window.confirm("端末に保存されたすべての回答データを削除しますか？")) {
-                localStorage.removeItem('event_survey_responses');
-                updateSavedCountBadge();
-                document.getElementById('admin-data-count').textContent = '0 件';
-                showToast("回答データを全削除しました", "info");
-            }
+            confirmClearBox.classList.remove('hidden');
+        };
+
+        document.getElementById('btn-confirm-clear-no').onclick = () => {
+            confirmClearBox.classList.add('hidden');
+        };
+
+        document.getElementById('btn-confirm-clear-yes').onclick = () => {
+            localStorage.removeItem('event_survey_responses');
+            updateSavedCountBadge();
+            document.getElementById('admin-data-count').textContent = '0 件';
+            confirmClearBox.classList.add('hidden');
+            showToast("回答データを全削除しました", "info");
         };
 
         // イベントバインド
